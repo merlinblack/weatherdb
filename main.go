@@ -35,22 +35,56 @@ func (t *Time) UnmarshalJSON(b []byte) (err error) {
 	return
 }
 
-type MeasurementDB struct {
-	Id          int `json:"-"`
+type Measurement struct {
+	Id          int
 	RecordedAt  time.Time
 	Temperature float64
 	Humidity    float64
 	Pressure    float64
-	Location    string `json:"-"`
-}
-
-func (m *MeasurementDB) String() string {
-	return fmt.Sprintf("%d - %f, %f, %f %s %s", m.Id, m.Temperature, m.Humidity, m.Pressure, m.RecordedAt, m.Location)
+	Location    string
 }
 
 type MeasurementJSON struct {
-	MeasurementDB
-	RecordedAt Time
+	RecordedAt  Time    `json:"recorded_at"`
+	Temperature float64 `json:"temperature"`
+	Humidity    float64 `json:"humidity"`
+	Pressure    float64 `json:"pressure"`
+}
+
+func (m *Measurement) String() string {
+	return m.asJSON()
+}
+
+func (m *Measurement) asJSON() string {
+	jm := MeasurementJSON{}
+	jm.RecordedAt.Time = m.RecordedAt
+	jm.Temperature = m.Temperature
+	jm.Humidity = m.Humidity
+	jm.Pressure = m.Pressure
+
+	jsonString, err := json.Marshal(jm)
+	if err != nil {
+		quitOnError("Problem marshalling json", err)
+	}
+
+	return string(jsonString)
+}
+
+func MeasurementFromJSON(data string) Measurement {
+	jm := MeasurementJSON{}
+
+	err := json.Unmarshal([]byte(data), &jm)
+	if err != nil {
+		quitOnError("Problem unmarshalling JSON", err)
+	}
+
+	m := Measurement{}
+	m.RecordedAt = jm.RecordedAt.Time
+	m.Temperature = jm.Temperature
+	m.Humidity = jm.Humidity
+	m.Pressure = jm.Pressure
+
+	return m
 }
 
 func quitOnError(message string, err error) {
@@ -77,10 +111,10 @@ func getConnection(dsn string) *pgxpool.Pool {
 	return db
 }
 
-func getRecentMeasurements(db *pgxpool.Pool) []*MeasurementDB {
-	var measurements []*MeasurementDB
+func getRecentMeasurements(db *pgxpool.Pool, limit int) []*Measurement {
+	var measurements []*Measurement
 
-	err := pgxscan.Select(context.Background(), db, &measurements, `select * from measurements order by recorded_at desc limit 5`)
+	err := pgxscan.Select(context.Background(), db, &measurements, `select * from measurements order by recorded_at desc limit $1`, limit)
 	if err != nil {
 		quitOnError("pgxscan failed", err)
 	}
@@ -88,7 +122,7 @@ func getRecentMeasurements(db *pgxpool.Pool) []*MeasurementDB {
 	return measurements
 }
 
-func insertMeasurement(db *pgxpool.Pool, measurement *MeasurementDB) error {
+func insertMeasurement(db *pgxpool.Pool, measurement *Measurement) error {
 
 	measurement.RecordedAt = measurement.RecordedAt.Round(time.Second)
 
@@ -110,48 +144,26 @@ func main() {
 
 	data := `{"recorded_at":"2024-04-02 23:24", "temperature": 24.3, "humidity": 67.32, "pressure": 1019.2}`
 
-	new := MeasurementJSON{}
-
-	err := json.Unmarshal([]byte(data), &new)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Problem unmarshalling JSON: %v\n", err)
-		os.Exit(1)
-	}
-
+	new := MeasurementFromJSON(data)
 	new.Location = `testing`
 
-	newdb := MeasurementDB{}
-	newdb.RecordedAt = new.RecordedAt.Time
-	newdb.Temperature = new.Temperature
-	newdb.Humidity = new.Humidity
-	newdb.Pressure = new.Pressure
-	newdb.Location = new.Location
-
-	err = insertMeasurement(db, &newdb)
-	if err != nil {
+	if err := insertMeasurement(db, &new); err != nil {
 		fmt.Fprintf(os.Stderr, "Problem inserting row: %v\n", err)
 	}
 
-	measurements := getRecentMeasurements(db)
+	measurements := getRecentMeasurements(db, 10)
 
+	first := true
+	fmt.Print("[\n")
 	for _, measurement := range measurements {
-		fmt.Printf("%v\n", measurement)
-	}
-
-	for _, measurement := range measurements {
-		jm := MeasurementJSON{}
-		jm.Id = measurement.Id
-		jm.RecordedAt.Time = measurement.RecordedAt
-		jm.Temperature = measurement.Temperature
-		jm.Humidity = measurement.Humidity
-		jm.Pressure = measurement.Pressure
-		jm.Location = measurement.Location
-
-		jsonString, err := json.Marshal(jm)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Problem marshalling json: %v\n", err)
+		if !first {
+			fmt.Print(",\n")
+		} else {
+			first = false
 		}
-
-		fmt.Printf("%s\n", jsonString)
+		fmt.Printf("  %v", measurement)
 	}
+	fmt.Print("\n]\n")
+
+	db.Exec(context.Background(), "delete from measurements where location = 'testing'")
 }
