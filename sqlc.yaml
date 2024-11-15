@@ -1,0 +1,22 @@
+version: "2"
+sql:
+  - engine: "postgresql"
+    queries: "queries.sql"
+    schema: "schema.sql"
+    gen:
+      go:
+        out: "weather_repository"
+        sql_package: "pgx/v5"
+        overrides:
+          - db_type: 'pg_catalog.timestamp'
+            go_type: 'time.Time'
+          - db_type: 'text'
+            nullable: true
+            go_type: 
+              type: 'string'
+              pointer: true
+          - db_type: 'pg_catalog.varchar'
+            nullable: true
+            go_type: 'string'
+          - db_type: "pg_catalog.interval"
+            go_type: "time.Duration"
