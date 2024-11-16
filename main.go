@@ -5,10 +5,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"os/signal"
 	"strings"
 	"time"
 	"net/http"
 	"strconv"
+	"log"
 
 	"github.com/carmo-evan/strtotime"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -79,8 +81,7 @@ func MeasurementFromJSON(data string) weather_repository.Measurement {
 }
 
 func quitOnError(message string, err error) {
-	fmt.Fprintf(os.Stderr, "%s: %v\n", message, err)
-	os.Exit(1)
+	log.Fatalf("%s: %v\n", message, err)
 }
 
 func getDsn() string {
@@ -123,7 +124,7 @@ func test() {
 			Location:    new.Location,
 		})
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Problem inserting row: %v\n", err)
+		log.Printf("Problem inserting row: %v\n", err)
 	}
 
 	measurements, err := weather.GetRecentWeather(context.Background(), 10)
@@ -145,12 +146,12 @@ func test() {
 
 	seconds, err := strtotime.Parse(`2 hour`, 0)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Problem parsing duration: %v\n", err)
+		log.Printf("Problem parsing duration: %v\n", err)
 	} else {
 		interval := time.Duration(seconds * int64(time.Second))
 		trend, err := weather.GetWeatherTrend(context.Background(), interval)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Problem retrieving weather trends: %v\n", err)
+			log.Printf("Problem retrieving weather trends: %v\n", err)
 		} else {
 			fmt.Printf("Temperature: %s, Humidity: %s, Pressure: %s\n", trend.Temperature, trend.Humidity, trend.Pressure)
 		}
@@ -168,7 +169,7 @@ func recentMeasurements(w http.ResponseWriter, r *http.Request, weather *weather
 	if len(limitParam) > 0 {
 		i, err := strconv.Atoi(limitParam)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Bad value for limit sent: %v", limitParam)
+			log.Printf("Bad value for limit sent: %v", limitParam)
 		} else {
 			limit = i
 		}
@@ -203,12 +204,12 @@ func trends(w http.ResponseWriter, r *http.Request, weather *weather_repository.
 	for _,period := range periods {
 		seconds, err := strtotime.Parse(period, 0)
 		if err != nil {
-			quitOnError("Problem parsing duration: %v\n", err)
+			quitOnError(`Problem parsing duration`, err)
 		} else {
 			interval := time.Duration(seconds * int64(time.Second))
 			trend, err := weather.GetWeatherTrend(context.Background(), interval)
 			if err != nil {
-				quitOnError("Problem retrieving weather trends: %v\n", err)
+				quitOnError(`Problem retrieving weather trends`, err)
 			}
 			trends = append(trends, trend)
 		}
@@ -251,8 +252,43 @@ func main() {
 
 	mux.HandleFunc(`GET /api/weather`, makeDBHandlerClosure(weather, recentMeasurements))
 	mux.HandleFunc(`GET /api/trends`, makeDBHandlerClosure(weather, trends))
+	mux.HandleFunc(`GET /api/wait`, func( w http.ResponseWriter, _ *http.Request) {
+		log.Println(`Long request...`)
+		time.Sleep( 5 * time.Second)
+		log.Println(`10 sec ...`)
+		time.Sleep( 10 * time.Second)
+		log.Println(`Finished long request`)
+		fmt.Fprintln(w, `OK`)
+	})
 
-	fmt.Println(`Listening on localhost:3000`)
+	server := &http.Server{
+		Addr: `:3000`,
+		Handler: mux,
+	}
 
-	http.ListenAndServe(`localhost:3000`, mux )
+	go func() {
+		log.Printf("Listening on %v\n", server.Addr)
+		err := server.ListenAndServe()
+
+		if err == http.ErrServerClosed {
+			log.Println(`Server closed, no longer accepting connections`)
+		} else {
+			quitOnError(`Problem starting http server`, err)
+		}
+	}()
+
+	// Wait for OS interrupt (pkill -2 weatherdb)
+	stop := make(chan os.Signal, 1)
+	signal.Notify(stop, os.Interrupt)
+	<-stop
+
+	// Shutdown
+	ctx, cancel := context.WithTimeout(context.Background(), 30 * time.Second)
+	defer cancel()
+	log.Println(`Graceful shutdown, current requests have 30 seconds to finish`)
+	if err := server.Shutdown(ctx); err != nil {
+		quitOnError("Problem shutting down", err )
+	}
+
+	log.Println(`Bye!`)
 }
