@@ -1,7 +1,8 @@
-package main
+package measurement
 
 import (
 	"encoding/json"
+	"log"
 	"strings"
 	"time"
 
@@ -38,7 +39,7 @@ type MeasurementJSON struct {
 	Pressure    float64 `json:"pressure"`
 }
 
-func MeasurementToJSON(m *weather_repository.Measurement) string {
+func ToJSON(m *weather_repository.Measurement) string {
 	jm := MeasurementJSON{}
 	jm.RecordedAt.Time = m.RecordedAt
 	jm.Temperature = m.Temperature
@@ -47,18 +48,18 @@ func MeasurementToJSON(m *weather_repository.Measurement) string {
 
 	jsonString, err := json.Marshal(jm)
 	if err != nil {
-		quitOnError("Problem marshalling json", err)
+		log.Fatalf("Problem marshalling json: %v\n", err)
 	}
 
 	return string(jsonString)
 }
 
-func MeasurementFromJSON(data string) weather_repository.Measurement {
+func FromJSON(data string) weather_repository.Measurement {
 	jm := MeasurementJSON{}
 
 	err := json.Unmarshal([]byte(data), &jm)
 	if err != nil {
-		quitOnError("Problem unmarshalling JSON", err)
+		log.Fatalf("Problem unmarshalling JSON: %v\n", err)
 	}
 
 	m := weather_repository.Measurement{}

@@ -2,24 +2,24 @@ package middleware
 
 import "net/http"
 
-type Chain struct {
+type chain struct {
 	next http.Handler
 }
 
-func ChainFinal(handler http.Handler) *Chain {
-	return &Chain{handler}
+func ChainFinal(handler http.Handler) *chain {
+	return &chain{handler}
 }
 
-func (c *Chain) Use(handler func(http.Handler) http.Handler) {
+func (c *chain) Use(handler func(http.Handler) http.Handler) {
 	c.next = handler(c.next)
 }
 
-func (c *Chain) UseGroup(handlers ...func(http.Handler) http.Handler) {
+func (c *chain) UseGroup(handlers ...func(http.Handler) http.Handler) {
 	for _, handler := range handlers {
 		c.Use(handler)
 	}
 }
 
-func (c *Chain) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (c *chain) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	c.next.ServeHTTP(w, r)
 }

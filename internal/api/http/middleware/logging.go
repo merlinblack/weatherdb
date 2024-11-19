@@ -6,11 +6,11 @@ import (
 	"time"
 )
 
-type LoggingMiddlewareStruct struct {
+type logging struct {
 	handler http.Handler
 }
 
-func (m LoggingMiddlewareStruct) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (m logging) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	start := time.Now()
 
 	m.handler.ServeHTTP(w, r)
@@ -21,5 +21,5 @@ func (m LoggingMiddlewareStruct) ServeHTTP(w http.ResponseWriter, r *http.Reques
 }
 
 func LoggingMiddleware(next http.Handler) http.Handler {
-	return LoggingMiddlewareStruct{next}
+	return logging{next}
 }
