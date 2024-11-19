@@ -5,7 +5,7 @@ sql:
     schema: "sql/schema.sql"
     gen:
       go:
-        out: "internal/weather_repository"
+        out: "internal/repository/weather"
         sql_package: "pgx/v5"
         overrides:
           - db_type: 'pg_catalog.timestamp'

@@ -6,23 +6,23 @@ import (
 	"strings"
 	"time"
 
-	"github.com/merlinblack/weatherdb/internal/weather_repository"
+	"github.com/merlinblack/weatherdb/internal/repository/weather"
 )
 
-type Time struct {
+type measurementTime struct {
 	time.Time
 }
 
 const timeJSONLayout = `2006-01-02 15:04`
 
-func (t Time) MarshalJSON() ([]byte, error) {
+func (t measurementTime) MarshalJSON() ([]byte, error) {
 	if t.IsZero() {
 		return json.Marshal(nil)
 	}
 	return json.Marshal(t.Format(timeJSONLayout))
 }
 
-func (t *Time) UnmarshalJSON(b []byte) (err error) {
+func (t *measurementTime) UnmarshalJSON(b []byte) (err error) {
 	s := strings.Trim(string(b), "\"")
 	if s == "null" {
 		t.Time = time.Time{}
@@ -32,15 +32,15 @@ func (t *Time) UnmarshalJSON(b []byte) (err error) {
 	return
 }
 
-type MeasurementJSON struct {
-	RecordedAt  Time    `json:"recorded_at"`
-	Temperature float64 `json:"temperature"`
-	Humidity    float64 `json:"humidity"`
-	Pressure    float64 `json:"pressure"`
+type measurementJSON struct {
+	RecordedAt  measurementTime `json:"recorded_at"`
+	Temperature float64         `json:"temperature"`
+	Humidity    float64         `json:"humidity"`
+	Pressure    float64         `json:"pressure"`
 }
 
-func ToJSON(m *weather_repository.Measurement) string {
-	jm := MeasurementJSON{}
+func ToJSON(m *weather.Measurement) string {
+	jm := measurementJSON{}
 	jm.RecordedAt.Time = m.RecordedAt
 	jm.Temperature = m.Temperature
 	jm.Humidity = m.Humidity
@@ -54,15 +54,15 @@ func ToJSON(m *weather_repository.Measurement) string {
 	return string(jsonString)
 }
 
-func FromJSON(data string) weather_repository.Measurement {
-	jm := MeasurementJSON{}
+func FromJSON(data string) weather.Measurement {
+	jm := measurementJSON{}
 
 	err := json.Unmarshal([]byte(data), &jm)
 	if err != nil {
 		log.Fatalf("Problem unmarshalling JSON: %v\n", err)
 	}
 
-	m := weather_repository.Measurement{}
+	m := weather.Measurement{}
 	m.RecordedAt = jm.RecordedAt.Time
 	m.Temperature = jm.Temperature
 	m.Humidity = jm.Humidity

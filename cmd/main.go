@@ -12,7 +12,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/merlinblack/weatherdb/internal/api/http/routing"
-	"github.com/merlinblack/weatherdb/internal/weather_repository"
+	"github.com/merlinblack/weatherdb/internal/repository/weather"
 )
 
 func getDsn() string {
@@ -64,9 +64,9 @@ func main() {
 	conn := getConnection(getDsn())
 	defer conn.Close()
 
-	weather := weather_repository.New(conn)
+	weatherdb := weather.New(conn)
 
-	chain := routing.GetRouteChain(weather)
+	chain := routing.GetRouteChain(weatherdb)
 
 	server := &http.Server{
 		Addr:    `:3000`,

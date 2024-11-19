@@ -3,21 +3,21 @@
 //   sqlc v1.27.0
 // source: queries.sql
 
-package weather_repository
+package weather
 
 import (
 	"context"
 	"time"
 )
 
-const getRecentWeather = `-- name: GetRecentWeather :many
+const getRecentMeasurements = `-- name: GetRecentMeasurements :many
 select id, recorded_at, temperature, humidity, pressure, location from measurements
 order by recorded_at desc
 limit $1
 `
 
-func (q *Queries) GetRecentWeather(ctx context.Context, limit int32) ([]Measurement, error) {
-	rows, err := q.db.Query(ctx, getRecentWeather, limit)
+func (q *Queries) GetRecentMeasurements(ctx context.Context, limit int32) ([]Measurement, error) {
+	rows, err := q.db.Query(ctx, getRecentMeasurements, limit)
 	if err != nil {
 		return nil, err
 	}
@@ -43,13 +43,13 @@ func (q *Queries) GetRecentWeather(ctx context.Context, limit int32) ([]Measurem
 	return items, nil
 }
 
-const getWeatherTrend = `-- name: GetWeatherTrend :one
+const getTrends = `-- name: GetTrends :one
 select temperature, humidity, pressure 
 from weather_trend($1)
 `
 
-func (q *Queries) GetWeatherTrend(ctx context.Context, period time.Duration) (Trend, error) {
-	row := q.db.QueryRow(ctx, getWeatherTrend, period)
+func (q *Queries) GetTrends(ctx context.Context, period time.Duration) (Trend, error) {
+	row := q.db.QueryRow(ctx, getTrends, period)
 	var i Trend
 	err := row.Scan(&i.Temperature, &i.Humidity, &i.Pressure)
 	return i, err

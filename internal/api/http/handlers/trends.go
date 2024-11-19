@@ -3,28 +3,30 @@ package handlers
 import (
 	"context"
 	"fmt"
+	"log"
 	"net/http"
 	"time"
 
 	"github.com/carmo-evan/strtotime"
-	"github.com/merlinblack/weatherdb/internal/weather_repository"
+	"github.com/merlinblack/weatherdb/internal/repository/weather"
 )
 
-func Trends(w http.ResponseWriter, r *http.Request, weather *weather_repository.Queries) {
+func Trends(w http.ResponseWriter, r *http.Request, weatherdb *weather.Queries) {
 	w.Header().Set(`Content-Type`, `application/json; charset=utf=8`)
 
 	periods := []string{`15 minutes`, `1 hour`, `12 hours`, `1 week`, `1 month`}
-	trends := make([]weather_repository.Trend, 0, len(periods))
+	trends := make([]weather.Trend, 0, len(periods))
 
 	for _, period := range periods {
 		seconds, err := strtotime.Parse(period, 0)
 		if err != nil {
-			quitOnError(`Problem parsing duration`, err)
+			log.Fatalf("Problem parsing duration: %v\n", err)
 		} else {
 			interval := time.Duration(seconds * int64(time.Second))
-			trend, err := weather.GetWeatherTrend(context.Background(), interval)
+			trend, err := weatherdb.GetTrends(context.Background(), interval)
 			if err != nil {
-				quitOnError(`Problem retrieving weather trends`, err)
+				internal500(w, `Problem retrieving weather trends`, err)
+				return
 			}
 			trends = append(trends, trend)
 		}

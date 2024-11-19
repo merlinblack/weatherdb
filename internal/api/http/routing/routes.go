@@ -6,16 +6,16 @@ import (
 
 	"github.com/merlinblack/weatherdb/internal/api/http/handlers"
 	"github.com/merlinblack/weatherdb/internal/api/http/middleware"
-	"github.com/merlinblack/weatherdb/internal/weather_repository"
+	"github.com/merlinblack/weatherdb/internal/repository/weather"
 )
 
-func makeHandlerWithRepo(repo *weather_repository.Queries, fn func(w http.ResponseWriter, r *http.Request, repo *weather_repository.Queries)) http.Handler {
+func makeHandlerWithRepo(repo *weather.Queries, fn func(w http.ResponseWriter, r *http.Request, repo *weather.Queries)) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		fn(w, r, repo)
 	})
 }
 
-func GetRouteChain(weather *weather_repository.Queries) http.Handler {
+func GetRouteChain(weather *weather.Queries) http.Handler {
 
 	mux := http.NewServeMux()
 
@@ -23,7 +23,7 @@ func GetRouteChain(weather *weather_repository.Queries) http.Handler {
 	mux.Handle(`GET /trends`, makeHandlerWithRepo(weather, handlers.Trends))
 	mux.HandleFunc(`GET /ping`, func(w http.ResponseWriter, _ *http.Request) { fmt.Fprintln(w, `pong`) })
 
-	chain := middleware.ChainFinal(mux)
+	chain := middleware.Chain(mux)
 	chain.Use(middleware.LoggingMiddleware)
 
 	return chain

@@ -8,10 +8,10 @@ import (
 	"strconv"
 
 	"github.com/merlinblack/weatherdb/internal/measurement"
-	"github.com/merlinblack/weatherdb/internal/weather_repository"
+	"github.com/merlinblack/weatherdb/internal/repository/weather"
 )
 
-func RecentMeasurements(w http.ResponseWriter, r *http.Request, weather *weather_repository.Queries) {
+func RecentMeasurements(w http.ResponseWriter, r *http.Request, weather *weather.Queries) {
 	w.Header().Set(`Content-Type`, `application/json; charset=utf=8`)
 
 	limit := 10
@@ -28,9 +28,10 @@ func RecentMeasurements(w http.ResponseWriter, r *http.Request, weather *weather
 
 	log.Printf("[%s] [%s] Using limit = %v\n", r.Method, r.URL, limit)
 
-	measurements, err := weather.GetRecentWeather(context.Background(), int32(limit))
+	measurements, err := weather.GetRecentMeasurements(context.Background(), int32(limit))
 	if err != nil {
-		quitOnError(`Could not get recent weather records`, err)
+		internal500(w, `Could not get recent weather records`, err)
+		return
 	}
 
 	first := true

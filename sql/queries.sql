@@ -1,9 +1,9 @@
--- name: GetRecentWeather :many
+-- name: GetRecentMeasurements :many
 select * from measurements
 order by recorded_at desc
 limit $1;
 
--- name: GetWeatherTrend :one
+-- name: GetTrends :one
 select temperature, humidity, pressure 
 from weather_trend(sqlc.arg(period));
 

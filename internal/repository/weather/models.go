@@ -2,7 +2,7 @@
 // versions:
 //   sqlc v1.27.0
 
-package weather_repository
+package weather
 
 import (
 	"time"

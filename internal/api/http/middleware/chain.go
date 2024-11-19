@@ -6,7 +6,7 @@ type chain struct {
 	next http.Handler
 }
 
-func ChainFinal(handler http.Handler) *chain {
+func Chain(handler http.Handler) *chain {
 	return &chain{handler}
 }
 
