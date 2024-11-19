@@ -1,5 +1,5 @@
-weatherdb: main.go
-	go build -v -o weatherdb main.go
+weatherdb: cmd/main.go cmd/measurement.go
+	go build -v -o weatherdb cmd/main.go cmd/measurement.go
 
 .PHONY: clean
 clean:

@@ -1,11 +1,11 @@
 version: "2"
 sql:
   - engine: "postgresql"
-    queries: "queries.sql"
-    schema: "schema.sql"
+    queries: "sql/queries.sql"
+    schema: "sql/schema.sql"
     gen:
       go:
-        out: "weather_repository"
+        out: "internal/weather_repository"
         sql_package: "pgx/v5"
         overrides:
           - db_type: 'pg_catalog.timestamp'

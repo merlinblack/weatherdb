@@ -2,83 +2,20 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
+	"log"
+	"net/http"
 	"os"
 	"os/signal"
-	"strings"
-	"time"
-	"net/http"
 	"strconv"
-	"log"
+	"time"
 
 	"github.com/carmo-evan/strtotime"
 	"github.com/jackc/pgx/v5/pgxpool"
 
-	"github.com/merlinblack/weatherdb/weather_repository"
+	"github.com/merlinblack/weatherdb/internal/api/http/middleware"
+	"github.com/merlinblack/weatherdb/internal/weather_repository"
 )
-
-type Time struct {
-	time.Time
-}
-
-const timeJSONLayout = `2006-01-02 15:04`
-
-func (t Time) MarshalJSON() ([]byte, error) {
-	if t.IsZero() {
-		return json.Marshal(nil)
-	}
-	return json.Marshal(t.Format(timeJSONLayout))
-}
-
-func (t *Time) UnmarshalJSON(b []byte) (err error) {
-	s := strings.Trim(string(b), "\"")
-	if s == "null" {
-		t.Time = time.Time{}
-		return
-	}
-	t.Time, err = time.Parse(timeJSONLayout, s)
-	return
-}
-
-type MeasurementJSON struct {
-	RecordedAt  Time    `json:"recorded_at"`
-	Temperature float64 `json:"temperature"`
-	Humidity    float64 `json:"humidity"`
-	Pressure    float64 `json:"pressure"`
-}
-
-func MeasurementToJSON(m *weather_repository.Measurement) string {
-	jm := MeasurementJSON{}
-	jm.RecordedAt.Time = m.RecordedAt
-	jm.Temperature = m.Temperature
-	jm.Humidity = m.Humidity
-	jm.Pressure = m.Pressure
-
-	jsonString, err := json.Marshal(jm)
-	if err != nil {
-		quitOnError("Problem marshalling json", err)
-	}
-
-	return string(jsonString)
-}
-
-func MeasurementFromJSON(data string) weather_repository.Measurement {
-	jm := MeasurementJSON{}
-
-	err := json.Unmarshal([]byte(data), &jm)
-	if err != nil {
-		quitOnError("Problem unmarshalling JSON", err)
-	}
-
-	m := weather_repository.Measurement{}
-	m.RecordedAt = jm.RecordedAt.Time
-	m.Temperature = jm.Temperature
-	m.Humidity = jm.Humidity
-	m.Pressure = jm.Pressure
-
-	return m
-}
 
 func quitOnError(message string, err error) {
 	log.Fatalf("%s: %v\n", message, err)
@@ -127,36 +64,6 @@ func test() {
 		log.Printf("Problem inserting row: %v\n", err)
 	}
 
-	measurements, err := weather.GetRecentWeather(context.Background(), 10)
-	if err != nil {
-		quitOnError(`Could not get recent weather records`, err)
-	}
-
-	first := true
-	fmt.Print("[\n")
-	for _, measurement := range measurements {
-		if !first {
-			fmt.Print(",\n")
-		} else {
-			first = false
-		}
-		fmt.Printf("  %v", MeasurementToJSON(&measurement))
-	}
-	fmt.Print("\n]\n")
-
-	seconds, err := strtotime.Parse(`2 hour`, 0)
-	if err != nil {
-		log.Printf("Problem parsing duration: %v\n", err)
-	} else {
-		interval := time.Duration(seconds * int64(time.Second))
-		trend, err := weather.GetWeatherTrend(context.Background(), interval)
-		if err != nil {
-			log.Printf("Problem retrieving weather trends: %v\n", err)
-		} else {
-			fmt.Printf("Temperature: %s, Humidity: %s, Pressure: %s\n", trend.Temperature, trend.Humidity, trend.Pressure)
-		}
-	}
-
 	conn.Exec(context.Background(), `delete from measurements where location = 'testing'`)
 }
 
@@ -175,7 +82,7 @@ func recentMeasurements(w http.ResponseWriter, r *http.Request, weather *weather
 		}
 	}
 
-	fmt.Printf("Using limit = %v\n", limit )
+	log.Printf("[%s] [%s] Using limit = %v\n", r.Method, r.URL, limit)
 
 	measurements, err := weather.GetRecentWeather(context.Background(), int32(limit))
 	if err != nil {
@@ -201,7 +108,7 @@ func trends(w http.ResponseWriter, r *http.Request, weather *weather_repository.
 	periods := []string{`15 minutes`, `1 hour`, `12 hours`, `1 week`, `1 month`}
 	trends := make([]weather_repository.Trend, 0, len(periods))
 
-	for _,period := range periods {
+	for _, period := range periods {
 		seconds, err := strtotime.Parse(period, 0)
 		if err != nil {
 			quitOnError(`Problem parsing duration`, err)
@@ -217,7 +124,7 @@ func trends(w http.ResponseWriter, r *http.Request, weather *weather_repository.
 
 	first := true
 	fmt.Fprintf(w, "{\n")
-	for index,period := range periods {
+	for index, period := range periods {
 		if !first {
 			fmt.Fprintf(w, ",\n")
 		} else {
@@ -233,11 +140,10 @@ func trends(w http.ResponseWriter, r *http.Request, weather *weather_repository.
 	fmt.Fprintf(w, "\n}\n")
 }
 
-
-func makeDBHandlerClosure( repo *weather_repository.Queries, fn func(w http.ResponseWriter, r *http.Request, repo *weather_repository.Queries)) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
+func makeHandlerWithRepo(repo *weather_repository.Queries, fn func(w http.ResponseWriter, r *http.Request, repo *weather_repository.Queries)) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		fn(w, r, repo)
-	}
+	})
 }
 
 func main() {
@@ -250,20 +156,16 @@ func main() {
 
 	mux := http.NewServeMux()
 
-	mux.HandleFunc(`GET /api/weather`, makeDBHandlerClosure(weather, recentMeasurements))
-	mux.HandleFunc(`GET /api/trends`, makeDBHandlerClosure(weather, trends))
-	mux.HandleFunc(`GET /api/wait`, func( w http.ResponseWriter, _ *http.Request) {
-		log.Println(`Long request...`)
-		time.Sleep( 5 * time.Second)
-		log.Println(`10 sec ...`)
-		time.Sleep( 10 * time.Second)
-		log.Println(`Finished long request`)
-		fmt.Fprintln(w, `OK`)
-	})
+	mux.Handle(`GET /weather`, makeHandlerWithRepo(weather, recentMeasurements))
+	mux.Handle(`GET /trends`, makeHandlerWithRepo(weather, trends))
+	mux.HandleFunc(`GET /ping`, func(w http.ResponseWriter, _ *http.Request) { fmt.Fprintln(w, `pong`) })
+
+	chain := middleware.ChainFinal(mux)
+	chain.Use(middleware.LoggingMiddleware)
 
 	server := &http.Server{
-		Addr: `:3000`,
-		Handler: mux,
+		Addr:    `:3000`,
+		Handler: chain,
 	}
 
 	go func() {
@@ -281,13 +183,15 @@ func main() {
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, os.Interrupt)
 	<-stop
+	// put a newline after the possible '^C' that is now displayed if the user pressed ^C
+	fmt.Println(``)
 
 	// Shutdown
-	ctx, cancel := context.WithTimeout(context.Background(), 30 * time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 	log.Println(`Graceful shutdown, current requests have 30 seconds to finish`)
 	if err := server.Shutdown(ctx); err != nil {
-		quitOnError("Problem shutting down", err )
+		quitOnError("Problem shutting down", err)
 	}
 
 	log.Println(`Bye!`)
