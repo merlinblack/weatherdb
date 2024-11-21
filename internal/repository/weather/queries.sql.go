@@ -10,6 +10,54 @@ import (
 	"time"
 )
 
+const getHourlySummary = `-- name: GetHourlySummary :many
+select
+    hour,
+    round(avg(temperature)::numeric,1)::text as temperature,
+    round(avg(humidity)::numeric,1)::text as humidity,
+    round(avg(pressure)::numeric,2)::text as pressure
+from (
+ select date_trunc('hour',recorded_at)::text as hour, temperature, humidity, pressure
+ from public.measurements
+ order by hour desc
+ limit $1::int * 60
+) data
+group by hour
+order by hour
+`
+
+type GetHourlySummaryRow struct {
+	Hour        string
+	Temperature string
+	Humidity    string
+	Pressure    string
+}
+
+func (q *Queries) GetHourlySummary(ctx context.Context, hours int32) ([]GetHourlySummaryRow, error) {
+	rows, err := q.db.Query(ctx, getHourlySummary, hours)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetHourlySummaryRow
+	for rows.Next() {
+		var i GetHourlySummaryRow
+		if err := rows.Scan(
+			&i.Hour,
+			&i.Temperature,
+			&i.Humidity,
+			&i.Pressure,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getRecentMeasurements = `-- name: GetRecentMeasurements :many
 select id, recorded_at, temperature, humidity, pressure, location from measurements
 order by recorded_at desc

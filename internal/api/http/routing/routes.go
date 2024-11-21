@@ -21,6 +21,7 @@ func GetRouteChain(weather *weather.Queries) http.Handler {
 
 	mux.Handle(`GET /weather`, makeHandlerWithRepo(weather, handlers.RecentMeasurements))
 	mux.Handle(`GET /trends`, makeHandlerWithRepo(weather, handlers.Trends))
+	mux.Handle(`GET /summary`, makeHandlerWithRepo(weather, handlers.HourlySummary))
 	mux.HandleFunc(`GET /ping`, func(w http.ResponseWriter, _ *http.Request) { fmt.Fprintln(w, `pong`) })
 
 	chain := middleware.Chain(mux)

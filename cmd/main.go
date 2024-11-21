@@ -9,20 +9,38 @@ import (
 	"os/signal"
 	"time"
 
+	"github.com/ilyakaznacheev/cleanenv"
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/merlinblack/weatherdb/internal/api/http/routing"
 	"github.com/merlinblack/weatherdb/internal/repository/weather"
 )
 
-func getDsn() string {
-	user := `nigel`
-	password := os.Getenv(`WEATHERDB_PASSWORD`)
-	host := `octavo.local`
-	port := 5432
-	database := `weather_test`
+type DatabaseConfig struct {
+	Host     string `json:"host" env:"WEATHERDB_HOST" env-default:"localhost"`
+	Port     string `json:"port" env:"WEATHERDB_PORT" env-default:"5432"`
+	Username string `json:"username" env:"WEATHERDB_USERNAME" env-default:"weather"`
+	Password string `json:"password" env:"WEATHERDB_PASSWORD" env-default:"weather"`
+	Name     string `json:"name" env:"WEATHERDB_NAME" env-default:"weather"`
+}
 
-	return fmt.Sprintf("postgres://%s:%s@%s:%d/%s", user, password, host, port, database)
+type APIConfig struct {
+	WritePassword string `json:"password" env:"WEATHERDB_API_PASS" env-default:"weather"`
+}
+
+type Config struct {
+	Database DatabaseConfig `json:"database"`
+	API      APIConfig      `json:"API"`
+}
+
+func getDsn(cfg *Config) string {
+	return fmt.Sprintf("postgres://%s:%s@%s:%s/%s",
+		cfg.Database.Username,
+		cfg.Database.Password,
+		cfg.Database.Host,
+		cfg.Database.Port,
+		cfg.Database.Name,
+	)
 }
 
 func getConnection(dsn string) *pgxpool.Pool {
@@ -61,7 +79,16 @@ func test(weather *weather_repository.Queries) {
 
 func main() {
 
-	conn := getConnection(getDsn())
+	cfg := &Config{}
+
+	err := cleanenv.ReadConfig(`config.json`, cfg)
+	if err != nil {
+		log.Printf("There was a problem reading te configuration file config.json: %v\n", err)
+	}
+
+	log.Printf("Configuration: %v\n", cfg)
+
+	conn := getConnection(getDsn(cfg))
 	defer conn.Close()
 
 	weatherdb := weather.New(conn)
