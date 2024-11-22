@@ -32,10 +32,10 @@ func RecentMeasurements(w http.ResponseWriter, r *http.Request, weather *weather
 		return
 	}
 
-	var rows []map[string]interface{}
+	var rows []map[string]any
 
 	for _, measurement := range measurements {
-		row := make(map[string]interface{})
+		row := make(map[string]any)
 
 		row[`recordedAt`] = measurement.RecordedAt.Format(timeJSONLayout)
 		row[`temperature`] = measurement.Temperature
@@ -52,7 +52,6 @@ func RecentMeasurements(w http.ResponseWriter, r *http.Request, weather *weather
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
 	w.Write(jsonResp)
 
 }

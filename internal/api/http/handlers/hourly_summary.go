@@ -32,10 +32,10 @@ func HourlySummary(w http.ResponseWriter, r *http.Request, weather *weather.Quer
 		return
 	}
 
-	var rows []map[string]interface{}
+	var rows []map[string]any
 
 	for _, measurement := range measurements {
-		row := make(map[string]interface{})
+		row := make(map[string]any)
 
 		row[`time`] = measurement.Hour
 		row[`temperature`] = measurement.Temperature
@@ -52,7 +52,6 @@ func HourlySummary(w http.ResponseWriter, r *http.Request, weather *weather.Quer
 	}
 
 	w.Header().Set(`Content-Type`, `application/json; charset=utf=8`)
-	w.WriteHeader(http.StatusOK)
 	w.Write(jsonResp)
 
 }

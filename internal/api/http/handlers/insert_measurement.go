@@ -40,7 +40,7 @@ func InsertMeasurement(w http.ResponseWriter, r *http.Request, cfg *config.Confi
 	}
 
 	if *data.Key != cfg.API.WritePassword {
-		notAllowed(w)
+		internalError(w, http.StatusUnauthorized, `Not allowed`)
 		return
 	}
 
@@ -114,28 +114,9 @@ func validateData(data *POSTInsertData) error {
 	return nil
 }
 
-func notAllowed(w http.ResponseWriter) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusBadRequest)
-
-	resp := make(map[string]string)
-
-	resp["message"] = `Not allowed`
-	resp["status"] = "400"
-
-	jsonResp, err := json.Marshal(resp)
-
-	if err != nil {
-		log.Fatalf("Error happened in JSON marshal. Err: %s", err)
-	}
-
-	w.Write(jsonResp)
-
-}
-
 func writeResponse(w http.ResponseWriter, data weather.Measurement) {
 
-	resp := make(map[string]interface{})
+	resp := make(map[string]any)
 
 	resp[`recordedAt`] = data.RecordedAt.Format(timeJSONLayout)
 	resp[`temperature`] = data.Temperature

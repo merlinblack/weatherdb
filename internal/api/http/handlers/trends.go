@@ -2,7 +2,7 @@ package handlers
 
 import (
 	"context"
-	"fmt"
+	"encoding/json"
 	"log"
 	"net/http"
 	"time"
@@ -32,20 +32,25 @@ func Trends(w http.ResponseWriter, r *http.Request, weatherdb *weather.Queries) 
 		}
 	}
 
-	first := true
-	fmt.Fprintf(w, "{\n")
+	rows := make(map[string]any)
+
 	for index, period := range periods {
-		if !first {
-			fmt.Fprintf(w, ",\n")
-		} else {
-			first = false
-		}
-		fmt.Fprintf(w, `"%v":{"temperature":"%v","humidity":"%v","pressure":"%v"}`,
-			period,
-			trends[index].Temperature,
-			trends[index].Humidity,
-			trends[index].Pressure,
-		)
+		row := make(map[string]string)
+
+		row[`temperature`] = trends[index].Temperature
+		row[`humidity`] = trends[index].Humidity
+		row[`pressure`] = trends[index].Pressure
+
+		rows[period] = row
 	}
-	fmt.Fprintf(w, "\n}\n")
+
+	jsonResp, err := json.Marshal(rows)
+
+	if err != nil {
+		log.Fatalf("Error happened in JSON marshal. Err: %s", err)
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(jsonResp)
+
 }
