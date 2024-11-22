@@ -2,7 +2,7 @@ package handlers
 
 import (
 	"context"
-	"fmt"
+	"encoding/json"
 	"log"
 	"net/http"
 	"strconv"
@@ -11,7 +11,6 @@ import (
 )
 
 func HourlySummary(w http.ResponseWriter, r *http.Request, weather *weather.Queries) {
-	w.Header().Set(`Content-Type`, `application/json; charset=utf=8`)
 
 	hours := 24
 	hoursParam := r.URL.Query().Get(`hours`)
@@ -33,20 +32,27 @@ func HourlySummary(w http.ResponseWriter, r *http.Request, weather *weather.Quer
 		return
 	}
 
-	first := true
-	fmt.Fprintf(w, "[\n")
-	for _, measure := range measurements {
-		if !first {
-			fmt.Fprintf(w, ",\n")
-		} else {
-			first = false
-		}
-		fmt.Fprintf(w, `  {"time":"%s", "temperature":"%s", "humidity":"%s", "pressure":"%s" }`,
-			measure.Hour,
-			measure.Temperature,
-			measure.Humidity,
-			measure.Pressure,
-		)
+	var rows []map[string]interface{}
+
+	for _, measurement := range measurements {
+		row := make(map[string]interface{})
+
+		row[`time`] = measurement.Hour
+		row[`temperature`] = measurement.Temperature
+		row[`humidity`] = measurement.Humidity
+		row[`pressure`] = measurement.Pressure
+
+		rows = append(rows, row)
 	}
-	fmt.Fprintf(w, "\n]\n")
+
+	jsonResp, err := json.Marshal(rows)
+
+	if err != nil {
+		log.Fatalf("Error happened in JSON marshal. Err: %s", err)
+	}
+
+	w.Header().Set(`Content-Type`, `application/json; charset=utf=8`)
+	w.WriteHeader(http.StatusOK)
+	w.Write(jsonResp)
+
 }

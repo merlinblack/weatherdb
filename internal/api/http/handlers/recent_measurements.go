@@ -2,17 +2,15 @@ package handlers
 
 import (
 	"context"
-	"fmt"
+	"encoding/json"
 	"log"
 	"net/http"
 	"strconv"
 
-	"github.com/merlinblack/weatherdb/internal/measurement"
 	"github.com/merlinblack/weatherdb/internal/repository/weather"
 )
 
 func RecentMeasurements(w http.ResponseWriter, r *http.Request, weather *weather.Queries) {
-	w.Header().Set(`Content-Type`, `application/json; charset=utf=8`)
 
 	limit := 10
 	limitParam := r.URL.Query().Get(`limit`)
@@ -34,15 +32,27 @@ func RecentMeasurements(w http.ResponseWriter, r *http.Request, weather *weather
 		return
 	}
 
-	first := true
-	fmt.Fprintf(w, "[\n")
-	for _, measure := range measurements {
-		if !first {
-			fmt.Fprintf(w, ",\n")
-		} else {
-			first = false
-		}
-		fmt.Fprintf(w, "  %v", measurement.ToJSON(&measure))
+	var rows []map[string]interface{}
+
+	for _, measurement := range measurements {
+		row := make(map[string]interface{})
+
+		row[`recordedAt`] = measurement.RecordedAt.Format(timeJSONLayout)
+		row[`temperature`] = measurement.Temperature
+		row[`humidity`] = measurement.Humidity
+		row[`pressure`] = measurement.Pressure
+
+		rows = append(rows, row)
 	}
-	fmt.Fprintf(w, "\n]\n")
+
+	jsonResp, err := json.Marshal(rows)
+
+	if err != nil {
+		log.Fatalf("Error happened in JSON marshal. Err: %s", err)
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	w.Write(jsonResp)
+
 }
