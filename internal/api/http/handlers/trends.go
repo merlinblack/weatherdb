@@ -12,7 +12,6 @@ import (
 )
 
 func Trends(w http.ResponseWriter, r *http.Request, weatherdb *weather.Queries) {
-	w.Header().Set(`Content-Type`, `application/json; charset=utf=8`)
 
 	periods := []string{`15 minutes`, `1 hour`, `12 hours`, `1 week`, `1 month`}
 	trends := make([]weather.Trend, 0, len(periods))
@@ -50,7 +49,7 @@ func Trends(w http.ResponseWriter, r *http.Request, weatherdb *weather.Queries) 
 		log.Fatalf("Error happened in JSON marshal. Err: %s", err)
 	}
 
-	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set(`Content-Type`, `application/json; charset=utf=8`)
 	w.Write(jsonResp)
 
 }

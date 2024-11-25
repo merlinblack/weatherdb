@@ -10,9 +10,6 @@ import (
 
 func internalError(w http.ResponseWriter, statusCode int, errorMessage string) {
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(statusCode)
-
 	resp := make(map[string]string)
 
 	resp["message"] = errorMessage
@@ -24,7 +21,10 @@ func internalError(w http.ResponseWriter, statusCode int, errorMessage string) {
 		log.Fatalf("Error happened in JSON marshal. Err: %s", err)
 	}
 
+	w.Header().Set(`Content-Type`, `application/json; charset=utf=8`)
+	w.WriteHeader(statusCode)
 	w.Write(jsonResp)
+
 }
 
 func internal500(w http.ResponseWriter, errorMessage string, err error) {

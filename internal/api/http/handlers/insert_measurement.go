@@ -130,7 +130,7 @@ func writeResponse(w http.ResponseWriter, data weather.Measurement) {
 		log.Fatalf("Error happened in JSON marshal. Err: %s", err)
 	}
 
-	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set(`Content-Type`, `application/json; charset=utf=8`)
 	w.WriteHeader(http.StatusAccepted)
 	w.Write(jsonResp)
 
