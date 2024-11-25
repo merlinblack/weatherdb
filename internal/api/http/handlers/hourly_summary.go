@@ -24,7 +24,7 @@ func HourlySummary(w http.ResponseWriter, r *http.Request, weather *weather.Quer
 		}
 	}
 
-	log.Printf("[%s] [%s] Using hours = %v\n", r.Method, r.URL, hours)
+	log.Printf("[%s] [%s] Using hours = %v\n", r.Method, r.URL.Path, hours)
 
 	measurements, err := weather.GetHourlySummary(context.Background(), int32(hours))
 	if err != nil {

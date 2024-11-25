@@ -11,18 +11,15 @@ import (
 )
 
 const getHourlySummary = `-- name: GetHourlySummary :many
-select
-    hour,
+select hour, temperature, humidity, pressure from (select
+    to_timestamp(hour)::text as hour,
     round(avg(temperature)::numeric,1)::text as temperature,
     round(avg(humidity)::numeric,1)::text as humidity,
     round(avg(pressure)::numeric,2)::text as pressure
-from (
- select date_trunc('hour',recorded_at)::text as hour, temperature, humidity, pressure
- from public.measurements
- order by hour desc
- limit $1::int * 60
-) data
+from (select id, recorded_at, temperature, humidity, pressure, location, hour from measurements order by recorded_at desc limit $1::int * 60) measurements
 group by hour
+order by hour desc
+limit $1::int) hour_measurements
 order by hour
 `
 
@@ -59,7 +56,7 @@ func (q *Queries) GetHourlySummary(ctx context.Context, hours int32) ([]GetHourl
 }
 
 const getRecentMeasurements = `-- name: GetRecentMeasurements :many
-select id, recorded_at, temperature, humidity, pressure, location from measurements
+select id, recorded_at, temperature, humidity, pressure, location, hour from measurements
 order by recorded_at desc
 limit $1
 `
@@ -80,6 +77,7 @@ func (q *Queries) GetRecentMeasurements(ctx context.Context, limit int32) ([]Mea
 			&i.Humidity,
 			&i.Pressure,
 			&i.Location,
+			&i.Hour,
 		); err != nil {
 			return nil, err
 		}
@@ -110,13 +108,14 @@ insert into measurements
     temperature,
     humidity,
     pressure,
-    location
+    location,
+    hour
 )
 values
 (
-    $1, $2, $3, $4, $5
+    $1, $2, $3, $4, $5, extract('epoch' from date_trunc('hour', timezone('Australia/Sydney', $1)))
 )
-RETURNING id, recorded_at, temperature, humidity, pressure, location
+RETURNING id, recorded_at, temperature, humidity, pressure, location, hour
 `
 
 type InsertMeasurementParams struct {
@@ -143,6 +142,7 @@ func (q *Queries) InsertMeasurement(ctx context.Context, arg InsertMeasurementPa
 		&i.Humidity,
 		&i.Pressure,
 		&i.Location,
+		&i.Hour,
 	)
 	return i, err
 }

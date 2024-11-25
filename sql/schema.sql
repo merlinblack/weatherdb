@@ -2,58 +2,19 @@
 -- PostgreSQL database dump
 --
 
--- Dumped from database version 16.3
--- Dumped by pg_dump version 16.3
-
-SET statement_timeout = 0;
-SET lock_timeout = 0;
-SET idle_in_transaction_session_timeout = 0;
-SET client_encoding = 'UTF8';
-SET standard_conforming_strings = on;
-SELECT pg_catalog.set_config('search_path', '', false);
-SET check_function_bodies = false;
-SET xmloption = content;
-SET client_min_messages = warning;
-SET row_security = off;
-
 --
--- Name: public; Type: SCHEMA; Schema: -; Owner: -
---
-
--- *not* creating schema, since initdb creates it
-
-
---
--- Name: dblink; Type: EXTENSION; Schema: -; Owner: -
---
-
-CREATE EXTENSION IF NOT EXISTS dblink WITH SCHEMA public;
-
-
---
--- Name: EXTENSION dblink; Type: COMMENT; Schema: -; Owner: -
---
-
-COMMENT ON EXTENSION dblink IS 'connect to other PostgreSQL databases from within a database';
-
-
-SET default_tablespace = '';
-
-SET default_table_access_method = heap;
-
---
--- Name: trend; Type: TABLE; Schema: public; Owner: -
+-- Name: trend; Type: TABLE; Schema: public
 --
 
 CREATE TABLE public.trend (
-    temperature text not null,
-    humidity text not null,
-    pressure text not null
+    temperature text NOT NULL,
+    humidity text NOT NULL,
+    pressure text NOT NULL
 );
 
 
 --
--- Name: weather_trend(interval); Type: FUNCTION; Schema: public; Owner: -
+-- Name: weather_trend(interval); Type: FUNCTION; Schema: public;
 --
 
 CREATE FUNCTION public.weather_trend(since interval) RETURNS SETOF public.trend
@@ -78,7 +39,7 @@ end; $$;
 
 
 --
--- Name: measurements; Type: TABLE; Schema: public; Owner: -
+-- Name: measurements; Type: TABLE; Schema: public; 
 --
 
 CREATE TABLE public.measurements (
@@ -87,12 +48,13 @@ CREATE TABLE public.measurements (
     temperature double precision NOT NULL,
     humidity double precision NOT NULL,
     pressure double precision NOT NULL,
-    location character varying
+    location character varying,
+    hour bigint
 );
 
 
 --
--- Name: measurements_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+-- Name: measurements_id_seq; Type: SEQUENCE; Schema: public;
 --
 
 CREATE SEQUENCE public.measurements_id_seq
@@ -104,21 +66,21 @@ CREATE SEQUENCE public.measurements_id_seq
 
 
 --
--- Name: measurements_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+-- Name: measurements_id_seq; Type: SEQUENCE OWNED BY; Schema: public; 
 --
 
 ALTER SEQUENCE public.measurements_id_seq OWNED BY public.measurements.id;
 
 
 --
--- Name: measurements id; Type: DEFAULT; Schema: public; Owner: -
+-- Name: measurements id; Type: DEFAULT; Schema: public; 
 --
 
 ALTER TABLE ONLY public.measurements ALTER COLUMN id SET DEFAULT nextval('public.measurements_id_seq'::regclass);
 
 
 --
--- Name: measurements measurements_pk; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: measurements measurements_pk; Type: CONSTRAINT; Schema: public; 
 --
 
 ALTER TABLE ONLY public.measurements
@@ -126,21 +88,9 @@ ALTER TABLE ONLY public.measurements
 
 
 --
--- Name: measurements_recorded_at_idx; Type: INDEX; Schema: public; Owner: -
+-- Name: measurements_recorded_at_idx; Type: INDEX; Schema: public; 
 --
 
 CREATE INDEX measurements_recorded_at_idx ON public.measurements USING btree (recorded_at DESC);
 
-
---
--- Name: SCHEMA public; Type: ACL; Schema: -; Owner: -
---
-
-REVOKE USAGE ON SCHEMA public FROM PUBLIC;
-GRANT ALL ON SCHEMA public TO PUBLIC;
-
-
---
--- PostgreSQL database dump complete
---
 

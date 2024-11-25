@@ -6,6 +6,8 @@ package weather
 
 import (
 	"time"
+
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 type Measurement struct {
@@ -15,6 +17,7 @@ type Measurement struct {
 	Humidity    float64
 	Pressure    float64
 	Location    string
+	Hour        pgtype.Int8
 }
 
 type Trend struct {

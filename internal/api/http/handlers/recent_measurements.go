@@ -24,7 +24,7 @@ func RecentMeasurements(w http.ResponseWriter, r *http.Request, weather *weather
 		}
 	}
 
-	log.Printf("[%s] [%s] Using limit = %v\n", r.Method, r.URL, limit)
+	log.Printf("[%s] [%s] Using limit = %v\n", r.Method, r.URL.Path, limit)
 
 	measurements, err := weather.GetRecentMeasurements(context.Background(), int32(limit))
 	if err != nil {
