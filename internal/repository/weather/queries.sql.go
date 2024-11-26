@@ -12,7 +12,7 @@ import (
 
 const getHourlySummary = `-- name: GetHourlySummary :many
 select hour, temperature, humidity, pressure from (select
-    to_timestamp(hour)::text as hour,
+    to_timestamp(hour)::timestamp as hour,
     round(avg(temperature)::numeric,1)::text as temperature,
     round(avg(humidity)::numeric,1)::text as humidity,
     round(avg(pressure)::numeric,2)::text as pressure
@@ -24,7 +24,7 @@ order by hour
 `
 
 type GetHourlySummaryRow struct {
-	Hour        string
+	Hour        time.Time
 	Temperature string
 	Humidity    string
 	Pressure    string

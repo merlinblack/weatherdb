@@ -32,12 +32,14 @@ func HourlySummary(w http.ResponseWriter, r *http.Request, weather *weather.Quer
 		return
 	}
 
+	log.Printf("[%s] [%s] Number of summary results = %v\n", r.Method, r.URL.Path, len(measurements))
+
 	var rows []map[string]any
 
 	for _, measurement := range measurements {
 		row := make(map[string]any)
 
-		row[`time`] = measurement.Hour
+		row[`time`] = measurement.Hour.Format(timeJSONLayout)
 		row[`temperature`] = measurement.Temperature
 		row[`humidity`] = measurement.Humidity
 		row[`pressure`] = measurement.Pressure
