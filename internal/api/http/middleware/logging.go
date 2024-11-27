@@ -12,7 +12,7 @@ type logging struct {
 
 func (m logging) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
-	log.Printf("[%s] [%s] [START] %s\n", r.Method, r.URL.Path, r.URL.RawQuery)
+	log.Printf("[%s] [%s] [START] %s from %s\n", r.Method, r.URL.Path, r.URL.RawQuery, r.RemoteAddr)
 
 	start := time.Now()
 

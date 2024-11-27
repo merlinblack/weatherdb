@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"context"
-	"encoding/json"
 	"log"
 	"net/http"
 	"time"
@@ -43,13 +42,6 @@ func Trends(w http.ResponseWriter, r *http.Request, weatherdb *weather.Queries) 
 		rows[period] = row
 	}
 
-	jsonResp, err := json.Marshal(rows)
-
-	if err != nil {
-		log.Fatalf("Error happened in JSON marshal. Err: %s", err)
-	}
-
-	w.Header().Set(`Content-Type`, `application/json; charset=utf=8`)
-	w.Write(jsonResp)
+	jsonResponse(w, http.StatusOK, rows)
 
 }

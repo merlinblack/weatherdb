@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"context"
-	"encoding/json"
 	"log"
 	"net/http"
 	"strconv"
@@ -18,7 +17,7 @@ func RecentMeasurements(w http.ResponseWriter, r *http.Request, weather *weather
 	if len(limitParam) > 0 {
 		i, err := strconv.Atoi(limitParam)
 		if err != nil {
-			log.Printf("Bad value for limit sent: %v", limitParam)
+			log.Printf("[%s] [%s] Bad value for limit sent: %v", r.Method, r.URL.Path, limitParam)
 		} else {
 			limit = i
 		}
@@ -37,21 +36,14 @@ func RecentMeasurements(w http.ResponseWriter, r *http.Request, weather *weather
 	for _, measurement := range measurements {
 		row := make(map[string]any)
 
-		row[`recordedAt`] = measurement.RecordedAt.Format(timeJSONLayout)
-		row[`temperature`] = measurement.Temperature
-		row[`humidity`] = measurement.Humidity
-		row[`pressure`] = measurement.Pressure
+		row[`recordedAt`] = formatTime(measurement.RecordedAt)
+		row[`temperature`] = formatFloat(measurement.Temperature)
+		row[`humidity`] = formatFloat(measurement.Humidity)
+		row[`pressure`] = formatFloat(measurement.Pressure)
 
 		rows = append(rows, row)
 	}
 
-	jsonResp, err := json.Marshal(rows)
-
-	if err != nil {
-		log.Fatalf("Error happened in JSON marshal. Err: %s", err)
-	}
-
-	w.Header().Set(`Content-Type`, `application/json; charset=utf=8`)
-	w.Write(jsonResp)
+	jsonResponse(w, http.StatusOK, rows)
 
 }

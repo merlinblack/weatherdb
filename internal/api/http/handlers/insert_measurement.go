@@ -118,20 +118,12 @@ func writeResponse(w http.ResponseWriter, data weather.Measurement) {
 
 	resp := make(map[string]any)
 
-	resp[`recordedAt`] = data.RecordedAt.Format(timeJSONLayout)
-	resp[`temperature`] = data.Temperature
-	resp[`humidity`] = data.Humidity
-	resp[`pressure`] = data.Pressure
+	resp[`recordedAt`] = formatTime(data.RecordedAt)
+	resp[`temperature`] = formatFloat(data.Temperature)
+	resp[`humidity`] = formatFloat(data.Humidity)
+	resp[`pressure`] = formatFloat(data.Pressure)
 	resp[`location`] = data.Location
 
-	jsonResp, err := json.Marshal(resp)
-
-	if err != nil {
-		log.Fatalf("Error happened in JSON marshal. Err: %s", err)
-	}
-
-	w.Header().Set(`Content-Type`, `application/json; charset=utf=8`)
-	w.WriteHeader(http.StatusAccepted)
-	w.Write(jsonResp)
+	jsonResponse(w, http.StatusAccepted, resp)
 
 }

@@ -26,9 +26,9 @@ RETURNING *;
 -- name: GetHourlySummary :many
 select * from (select
     to_timestamp(hour)::timestamp as hour,
-    round(avg(temperature)::numeric,1)::text as temperature,
-    round(avg(humidity)::numeric,1)::text as humidity,
-    round(avg(pressure)::numeric,2)::text as pressure
+    round(avg(temperature)::numeric,1)::float as temperature,
+    round(avg(humidity)::numeric,1)::float as humidity,
+    round(avg(pressure)::numeric,1)::float as pressure
 from (select * from measurements order by recorded_at desc limit sqlc.arg(hours)::int * 60) measurements
 group by hour
 order by hour desc

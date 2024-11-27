@@ -6,16 +6,20 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"time"
 )
 
-func internalError(w http.ResponseWriter, statusCode int, errorMessage string) {
+func formatTime(t time.Time) string {
+	return t.Format(timeJSONLayout)
+}
 
-	resp := make(map[string]string)
+func formatFloat(f float64) string {
+	return strconv.FormatFloat(f, 'f', 1, 64)
+}
 
-	resp["message"] = errorMessage
-	resp["status"] = strconv.Itoa(statusCode)
+func jsonResponse(w http.ResponseWriter, statusCode int, data any) {
 
-	jsonResp, err := json.Marshal(resp)
+	jsonResp, err := json.Marshal(data)
 
 	if err != nil {
 		log.Fatalf("Error happened in JSON marshal. Err: %s", err)
@@ -24,7 +28,16 @@ func internalError(w http.ResponseWriter, statusCode int, errorMessage string) {
 	w.Header().Set(`Content-Type`, `application/json; charset=utf=8`)
 	w.WriteHeader(statusCode)
 	w.Write(jsonResp)
+}
 
+func internalError(w http.ResponseWriter, statusCode int, errorMessage string) {
+
+	resp := make(map[string]string)
+
+	resp["message"] = errorMessage
+	resp["status"] = strconv.Itoa(statusCode)
+
+	jsonResponse(w, statusCode, resp)
 }
 
 func internal500(w http.ResponseWriter, errorMessage string, err error) {

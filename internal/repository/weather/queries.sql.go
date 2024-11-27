@@ -13,9 +13,9 @@ import (
 const getHourlySummary = `-- name: GetHourlySummary :many
 select hour, temperature, humidity, pressure from (select
     to_timestamp(hour)::timestamp as hour,
-    round(avg(temperature)::numeric,1)::text as temperature,
-    round(avg(humidity)::numeric,1)::text as humidity,
-    round(avg(pressure)::numeric,2)::text as pressure
+    round(avg(temperature)::numeric,1)::float as temperature,
+    round(avg(humidity)::numeric,1)::float as humidity,
+    round(avg(pressure)::numeric,1)::float as pressure
 from (select id, recorded_at, temperature, humidity, pressure, location, hour from measurements order by recorded_at desc limit $1::int * 60) measurements
 group by hour
 order by hour desc
@@ -25,9 +25,9 @@ order by hour
 
 type GetHourlySummaryRow struct {
 	Hour        time.Time
-	Temperature string
-	Humidity    string
-	Pressure    string
+	Temperature float64
+	Humidity    float64
+	Pressure    float64
 }
 
 func (q *Queries) GetHourlySummary(ctx context.Context, hours int32) ([]GetHourlySummaryRow, error) {

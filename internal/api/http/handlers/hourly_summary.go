@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"context"
-	"encoding/json"
 	"log"
 	"net/http"
 	"strconv"
@@ -39,21 +38,14 @@ func HourlySummary(w http.ResponseWriter, r *http.Request, weather *weather.Quer
 	for _, measurement := range measurements {
 		row := make(map[string]any)
 
-		row[`time`] = measurement.Hour.Format(timeJSONLayout)
-		row[`temperature`] = measurement.Temperature
-		row[`humidity`] = measurement.Humidity
-		row[`pressure`] = measurement.Pressure
+		row[`time`] = formatTime(measurement.Hour)
+		row[`temperature`] = formatFloat(measurement.Temperature)
+		row[`humidity`] = formatFloat(measurement.Humidity)
+		row[`pressure`] = formatFloat(measurement.Pressure)
 
 		rows = append(rows, row)
 	}
 
-	jsonResp, err := json.Marshal(rows)
-
-	if err != nil {
-		log.Fatalf("Error happened in JSON marshal. Err: %s", err)
-	}
-
-	w.Header().Set(`Content-Type`, `application/json; charset=utf=8`)
-	w.Write(jsonResp)
+	jsonResponse(w, http.StatusOK, rows)
 
 }
