@@ -30,8 +30,8 @@ func GetRouteChain(cfg *config.Config, weather *weather.Queries) http.Handler {
 
 	mux := http.NewServeMux()
 
-	mux.Handle(`GET /weather`, makeHandlerWithRepo(weather, handlers.RecentMeasurements))
-	mux.Handle(`POST /weather`, makeHandlerWithRepoAndConfig(cfg, weather, handlers.InsertMeasurement))
+	mux.Handle(`GET /measurements`, makeHandlerWithRepo(weather, handlers.RecentMeasurements))
+	mux.Handle(`POST /measurements`, makeHandlerWithRepoAndConfig(cfg, weather, handlers.InsertMeasurement))
 	mux.Handle(`GET /trends`, makeHandlerWithRepo(weather, handlers.Trends))
 	mux.Handle(`GET /summary`, makeHandlerWithRepo(weather, handlers.HourlySummary))
 	mux.HandleFunc(`GET /ping`, func(w http.ResponseWriter, _ *http.Request) { fmt.Fprintln(w, `pong`) })

@@ -113,7 +113,7 @@ insert into measurements
 )
 values
 (
-    $1, $2, $3, $4, $5, extract('epoch' from date_trunc('hour', timezone('Australia/Sydney', $1)))
+    $1, $2, $3, $4, $5, extract('epoch' from date_trunc('hour', timezone('Australia/Sydney', $1::timestamp)))
 )
 RETURNING id, recorded_at, temperature, humidity, pressure, location, hour
 `
