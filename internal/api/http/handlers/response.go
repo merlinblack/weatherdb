@@ -25,7 +25,7 @@ func jsonResponse(w http.ResponseWriter, statusCode int, data any) {
 		log.Fatalf("Error happened in JSON marshal. Err: %s", err)
 	}
 
-	w.Header().Set(`Content-Type`, `application/json; charset=utf=8`)
+	w.Header().Set(`Content-Type`, `application/json; charset=utf-8`)
 	w.WriteHeader(statusCode)
 	w.Write(jsonResp)
 }
